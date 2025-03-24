@@ -11,7 +11,6 @@ class Player(GameObject):
         pub.subscribe(self.input_event, 'input')
 
     def input_event(self, events=None):
-        # TODO: this will need to handle non-FPS movement events
         pass
 
     def collision(self, other):

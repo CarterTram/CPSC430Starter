@@ -86,7 +86,7 @@ class PandaBulletCharacterController:
 
     @__currentPos.setter
     def __currentPos(self, value):
-        self.game_object.position = (value[0], value[1], value[2])
+         self.game_object.position = (value[0], value[1], value[2])
 
     def setCollideMask(self, *args):
         self.__walkCapsuleNP.setCollideMask(*args)

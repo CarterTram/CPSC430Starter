@@ -23,9 +23,6 @@ class ViewObject:
         self.cube_texture = base.loader.loadTexture("Textures/crate.png")
         self.cube.setTexture(self.cube_texture)
 
-        self.cube.setTag('selectable', '')
-        self.cube.setPythonTag("owner", self)
-
         bounds = self.cube.getTightBounds()
         # bounds is two vectors
         bounds = bounds[1]-bounds[0]
@@ -38,21 +35,16 @@ class ViewObject:
 
         self.cube.setScale(x_scale, y_scale, z_scale)
 
-        self.is_selected = False
         self.texture_on = True
         self.toggle_texture_pressed = False
         pub.subscribe(self.toggle_texture, 'input')
 
     def deleted(self):
-        # Prevent circular references from keeping both the view object and the cube alive
-        self.cube.setPythonTag("owner", None)
+        pass
 
     def toggle_texture(self, events=None):
         if 'toggleTexture' in events:
             self.toggle_texture_pressed = True
-
-    def selected(self):
-        self.is_selected = True
 
     def tick(self):
         # This will only be needed for game objects that
@@ -66,9 +58,9 @@ class ViewObject:
             self.cube.setHpr(h, p, r)
             self.cube.set_pos(*self.game_object.position)
 
-        # This sort of interaction with the view itself is fine
-        # for both physics and non-physics objects
-        if self.toggle_texture_pressed and self.is_selected:
+        # If the right control was pressed, and the game object
+        # is currently selected, toggle the texture.
+        if self.toggle_texture_pressed and self.game_object.is_selected:
             if self.texture_on:
                 self.texture_on = False
                 self.cube.setTextureOff(1)
@@ -76,7 +68,6 @@ class ViewObject:
                 self.texture_on = True
                 self.cube.setTexture(self.cube_texture)
 
-            self.toggle_texture_pressed = False
-
-        self.is_selected = False
+        self.toggle_texture_pressed = False
+        self.game_object.is_selected = False
 

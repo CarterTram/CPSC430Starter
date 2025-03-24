@@ -11,9 +11,11 @@ class GameObject:
         self.y_rotation = 0
         self.z_rotation = 0
         self.size = size
+        self.is_selected = False
 
-        # TODO: need a place to store the physics objects if the
-        # subclasses create one
+        # Store a reference back to the game object
+        if physics:
+            self.physics.setPythonTag("owner", self)
 
     @property
     def physics(self):
@@ -84,6 +86,9 @@ class GameObject:
     @z_rotation.setter
     def z_rotation(self, value):
         self._z_rotation = value
+
+    def selected(self):
+        self.is_selected = True
 
     def tick(self):
         pass

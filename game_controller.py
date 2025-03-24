@@ -2,7 +2,7 @@ from direct.showbase.ShowBase import ShowBase
 from direct.task import Task
 from panda3d.bullet import BulletDebugNode
 from panda3d.core import CollisionNode, GeomNode, CollisionRay, CollisionHandlerQueue, CollisionTraverser, MouseButton, \
-    WindowProperties, Quat, Vec3
+    WindowProperties, Quat, Vec3, Point3
 from direct.showbase.InputStateGlobal import inputState
 from pubsub import pub
 import sys
@@ -32,16 +32,6 @@ class Main(ShowBase):
         self.game_world.load_world()
         self.player = PandaBulletCharacterController(self.game_world.physics_world, self.render, self.player)
 
-        picker_node = CollisionNode('mouseRay')
-        picker_np = self.camera.attachNewNode(picker_node)
-        picker_node.setFromCollideMask(GeomNode.getDefaultCollideMask())
-        picker_node.set_into_collide_mask(0)
-        self.pickerRay = CollisionRay()
-        picker_node.addSolid(self.pickerRay)
-        # picker_np.show()
-        self.rayQueue = CollisionHandlerQueue()
-        self.cTrav.addCollider(picker_np, self.rayQueue)
-
         self.taskMgr.add(self.tick)
 
         self.input_events = {}
@@ -59,22 +49,29 @@ class Main(ShowBase):
 
         self.camera_pitch = 0
 
+        pub.subscribe(self.handle_input, 'input')
+
         self.run()
 
-    def get_nearest_object(self):
-        self.pickerRay.setFromLens(self.camNode, 0, 0)
-        if self.rayQueue.getNumEntries() > 0:
-            self.rayQueue.sortEntries()
-            entry = self.rayQueue.getEntry(0)
-            picked_np = entry.getIntoNodePath()
-            picked_np = picked_np.findNetTag('selectable')
-            if not picked_np.isEmpty() and picked_np.getPythonTag("owner"):
-                return picked_np.getPythonTag("owner")
-
-        return None
+    def handle_input(self, events=None):
+        # Simple place to put debug outputs so they only happen on a click
+        if 'toggleTexture' in events:
+            print(f"Player position: {self.player.getPos()}")
+            print(f"Forward position: {self.forward(self.player.getHpr(), self.player.getPos(), 5)}")
 
     def input_event(self, event):
         self.input_events[event] = True
+
+    def forward(self, hpr, pos, distance):
+        h, p, r = hpr
+        x, y, z = pos
+        q = Quat()
+        q.setHpr((h, p, r))
+        forward = q.getForward()
+        delta_x = forward[0]
+        delta_y = forward[1]
+        delta_z = forward[2]
+        return x + delta_x*distance, y + delta_y*distance, z + delta_z*distance
 
     def tick(self, task):
         if 'toggleMouseMove' in self.input_events:
@@ -90,9 +87,12 @@ class Main(ShowBase):
         pub.sendMessage('input', events=self.input_events)
         self.move_player(self.input_events)
 
-        picked_object = self.get_nearest_object()
-        if picked_object:
-            picked_object.selected()
+        # This is getting the panda rigid body node.  Need to go from that
+        # to the game object using the 'owner' tag that's set when the
+        # game object is created.
+        picked_object = self.game_world.get_nearest(self.player.getPos(), self.forward(self.player.getHpr(), self.player.getPos(), 5))
+        if picked_object and picked_object.getNode() and picked_object.getNode().getPythonTag("owner"):
+            picked_object.getNode().getPythonTag("owner").selected()
 
         if self.CursorOffOn == 'Off':
             md = self.win.getPointer(0)

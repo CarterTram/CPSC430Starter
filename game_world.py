@@ -1,5 +1,5 @@
 from panda3d.bullet import BulletWorld, BulletBoxShape, BulletRigidBodyNode, BulletCapsuleShape, ZUp
-from panda3d.core import Vec3, VBase3, TransformState
+from panda3d.core import Vec3, VBase3, TransformState, Point3
 from pubsub import pub
 from game_object import GameObject
 from player import Player
@@ -79,3 +79,17 @@ class GameWorld:
 
     def set_property(self, key, value):
         self.properties[key] = value
+
+    def get_nearest(self, from_pt, to_pt):
+        # This shows the technique of near object detection using the physics engine.
+        fx, fy, fz = from_pt
+        tx, ty, tz = to_pt
+        result = self.physics_world.rayTestClosest(Point3(fx, fy, fz), Point3(tx, ty, tz))
+        return result
+
+    # TODO: use this to demonstrate a teleporting trap
+    def get_all_contacts(self, game_object):
+        if game_object.physics:
+            return self.physics_world.contactTest(game_object.physics).getContacts()
+
+        return []
