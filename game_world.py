@@ -1,3 +1,5 @@
+import math
+
 from panda3d.bullet import BulletWorld, BulletBoxShape, BulletRigidBodyNode, BulletCapsuleShape, ZUp
 from panda3d.core import Vec3, VBase3, TransformState, Point3, TextNode
 from direct.gui.OnscreenText import OnscreenText
@@ -12,6 +14,7 @@ class GameWorld:
         self.next_id = 0
         self.physics_world = BulletWorld()
         self.physics_world.setGravity(Vec3(0, 0, -9.81))
+        self.swing_time = 0
 
         if debugNode:
             self.physics_world.setDebugNode(debugNode)
@@ -76,6 +79,7 @@ class GameWorld:
         mass = 5
         self.active_box = self.create_object(position, "fallingCrate", size, mass, GameObject)
         self.active_box.physics.setKinematic(True)
+        self.swing_time = 0
 
     def move_active_box(self, dx):
         if self.active_box and not self.game_over:
@@ -87,6 +91,12 @@ class GameWorld:
 
     def release_box(self):
         if self.active_box and not self.game_over:
+            current_pos = self.active_box.physics.getTransform().getPos()
+            self.active_box.physics.setTransform(
+                TransformState.makePos(Vec3(0, current_pos.getY(), current_pos.getZ()))
+            )
+            self.active_box.physics.setLinearVelocity(Vec3(0, 0, 0))
+            self.active_box.physics.setAngularVelocity(Vec3(0, 0, 0))
             self.active_box.physics.setKinematic(False)
             self.active_box = None
 
@@ -95,9 +105,18 @@ class GameWorld:
             return
 
         for id in self.game_objects:
-            self.game_objects[id].tick()
+            self.game_objects[id].tick(dt)
 
         self.physics_world.do_physics(dt)
+
+        if self.active_box and self.active_box.physics.isKinematic():
+            self.swing_time += dt
+            amplitude = 5
+            period = 2.0
+            swing_x = amplitude * math.sin(2 * math.pi * self.swing_time / period)
+            self.active_box.physics.setTransform(
+                TransformState.makePos(Vec3(swing_x, 0, 10))
+            )
 
         self.drop_timer += dt
         if self.drop_timer >= self.drop_interval and not self.active_box:
