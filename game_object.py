@@ -11,6 +11,7 @@ class GameObject:
         self.y_rotation = 0
         self.z_rotation = 0
         self.size = size
+
         self.is_selected = False
         self.has_scored = False
 
@@ -89,9 +90,9 @@ class GameObject:
         self._z_rotation = value
 
     def selected(self):
-        self.is_selected = True
+         self.is_selected = True
 
-    def tick(self):
+    def tick(self, dt):
         pass
 
     def clicked(self):

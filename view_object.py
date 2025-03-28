@@ -19,7 +19,6 @@ class ViewObject:
 
         self.cube = base.loader.loadModel("Models/cube")
         self.cube.reparentTo(self.node_path)
-        self.cube.setPos(*game_object.position)
 
         texture_path = self.TEXTURE_MAP.get(self.game_object.kind, self.TEXTURE_MAP["default"])
         self.cube_texture = base.loader.loadTexture(texture_path)
@@ -35,6 +34,7 @@ class ViewObject:
 
         self.cube.setScale(x_scale, y_scale, z_scale)
 
+        self.is_selected = False
         self.texture_on = True
         self.toggle_texture_pressed = False
         pub.subscribe(self.toggle_texture, 'input')
