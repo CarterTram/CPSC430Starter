@@ -12,6 +12,7 @@ class GameObject:
         self.z_rotation = 0
         self.size = size
         self.is_selected = False
+        self.has_scored = False
 
         # Store a reference back to the game object
         if physics:
