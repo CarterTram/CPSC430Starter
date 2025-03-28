@@ -131,7 +131,10 @@ class GameWorld:
         self.create_object([0, 0, -5], "crate", (1000, 1000, 0.5), 0, GameObject)
 
     def get_property(self, key):
-        return self.properties.get(key)
+        if key in self.properties:
+            return self.properties[key]
+
+        return None
 
     def set_property(self, key, value):
         self.properties[key] = value
