@@ -118,10 +118,11 @@ class GameWorld:
                 TransformState.makePos(Vec3(swing_x, 0, 10))
             )
 
-        self.drop_timer += dt
-        if self.drop_timer >= self.drop_interval and not self.active_box:
-            self.drop_box()
-            self.drop_timer = 0
+        if not self.active_box:
+            self.drop_timer += dt
+            if self.drop_timer >= self.drop_interval:
+                self.drop_box()
+                self.drop_timer = 0
 
         self.check_stack()
 
@@ -129,7 +130,7 @@ class GameWorld:
         for obj_id, obj in self.game_objects.items():
             if obj.kind == "fallingCrate" and not obj.physics.isKinematic():
                 pos = obj.physics.getTransform().getPos()
-                if pos.getZ() < -1 or abs(pos.getX()) > 10:
+                if pos.getZ() < -4 or abs(pos.getX()) > 6:
                     self.game_over = True
                     self.update_score_text()
                     print(f"Game Over! Final Score: {self.score}")
@@ -144,9 +145,8 @@ class GameWorld:
         self.score_text.setText(f"Score: {self.score}")
 
     def load_world(self):
-        self.create_object([0, 0, -0.5], "crate", (20, 20, 1), 0, GameObject)
-        self.create_object([0, 0, 0], "crate", (2, 2, 1), 10, GameObject)
-        self.create_object([0, -20, 0], "player", (1, 0.5, 0.25, 0.5), 10, Player)
+        self.create_object([0, 0, -3], "crate", (2, 4, 1), 10, GameObject)
+        self.create_object([0, -20, 10], "player", (1, 0.5, 0.25, 0.5), 10, Player)
         self.create_object([0, 0, -5], "crate", (1000, 1000, 0.5), 0, GameObject)
 
     def get_property(self, key):
