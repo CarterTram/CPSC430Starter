@@ -14,7 +14,13 @@ class Player(GameObject):
         pass
 
     def collision(self, other):
-        # TODO: the physics engine needs to detect the
-        # collision and call this function
-        pass
+        print(f"{self.kind} collides with {other.kind}")
 
+    # Override these and don't defer to the physics object
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        self._position = value

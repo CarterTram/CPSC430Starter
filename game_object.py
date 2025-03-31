@@ -14,9 +14,9 @@ class GameObject:
 
         self.is_selected = False
         self.has_scored = False
+        self.is_collision_source = False
 
-        # Store a reference back to the game object
-        if physics:
+        if self.physics:
             self.physics.setPythonTag("owner", self)
 
     @property
@@ -89,6 +89,14 @@ class GameObject:
     def z_rotation(self, value):
         self._z_rotation = value
 
+    @property
+    def is_collision_source(self):
+        return self._is_collision_source
+
+    @is_collision_source.setter
+    def is_collision_source(self, value):
+        self._is_collision_source = value
+
     def selected(self):
          self.is_selected = True
 
@@ -99,4 +107,4 @@ class GameObject:
         pass
 
     def collision(self, other):
-        pass
+        print(f"{self.kind} collides with {other.kind}")

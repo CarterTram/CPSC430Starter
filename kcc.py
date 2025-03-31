@@ -50,6 +50,11 @@ class PandaBulletCharacterController:
         self.__setup(walkHeight, crouchHeight, stepHeight, radius)
         self.__mapMethods()
 
+        # Attempt to use a ghost node to detect collisions
+        self.__walkCapsuleNP.node().setPythonTag("owner", self.game_object)
+        self.__crouchCapsuleNP.node().setPythonTag("owner", self.game_object)
+        self.game_object.physics = self.__walkCapsuleNP.node()
+
         self.gravity = self.__world.getGravity().z if gravity is None else gravity
         self.setMaxSlope(50.0, True)
         self.setActiveJumpLimiter(True)
@@ -139,6 +144,9 @@ class PandaBulletCharacterController:
 
         self.__world.removeRigidBody(self.__walkCapsuleNP.node())
         self.__world.attachRigidBody(self.__crouchCapsuleNP.node())
+
+        # Let the player know its new physics object
+        self.game_object.physics = self.__crouchCapsuleNP.node()
 
         self.__capsuleOffset = self.__capsuleH * 0.5 + self.__levitation
         self.__footDistance = self.__capsuleOffset + self.__levitation
@@ -264,6 +272,8 @@ class PandaBulletCharacterController:
 
         self.__world.removeRigidBody(self.__crouchCapsuleNP.node())
         self.__world.attachRigidBody(self.__walkCapsuleNP.node())
+        # Let the player know its new physics objejct
+        self.game_object.physics = self.__walkCapsuleNP.node()
 
         self.__capsuleOffset = self.__capsuleH * 0.5 + self.__levitation
         self.__footDistance = self.__capsuleOffset + self.__levitation
@@ -537,8 +547,12 @@ class PandaBulletCharacterController:
         self.__walkCapsuleNP.node().addShape(self.__walkCapsule)
         self.__walkCapsuleNP.node().setKinematic(True)
         self.__walkCapsuleNP.setCollideMask(BitMask32.allOn())
-
         self.__world.attachRigidBody(self.__walkCapsuleNP.node())
+
+        self.__walkGhost = BulletGhostNode('walkGhost')
+        self.__walkGhost.addShape(self.__walkCapsule)
+        self.__walkGhostNP = self.movementParent.attachNewNode(self.__walkGhost)
+        self.__world.attach(self.__walkGhost)
 
         # Crouch Capsule
         self.__crouchCapsule = BulletCapsuleShape(self.__crouchCapsuleR, self.__crouchCapsuleH)
