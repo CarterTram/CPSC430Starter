@@ -6,7 +6,8 @@ class ViewObject:
     # Define texture mapping as a class-level constant
     TEXTURE_MAP = {
         "fallingCrate": "Textures/cube_5.png",
-        "default": "Textures/crate.png"
+        "default": "Textures/crate.png",
+        "floor": "Textures/floor.png"
     }
 
     def __init__(self, game_object):
@@ -39,6 +40,10 @@ class ViewObject:
         self.toggle_texture_pressed = False
         pub.subscribe(self.toggle_texture, 'input')
 
+    def setScale(self, scale_factor):
+        current_scale = self.cube.getScale()
+        new_scale = current_scale * scale_factor
+        self.cube.setScale(new_scale)
     def deleted(self):
         pass
 

@@ -163,7 +163,7 @@ class Main(ShowBase):
             speed.setX(delta)
 
         if 'jump' in events:
-            self.player.startJump(2)
+            #self.player.startJump(2)
             self.game_world.release_box()
 
         self.player.setLinearMovement(speed)

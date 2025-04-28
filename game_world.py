@@ -24,6 +24,7 @@ class GameWorld:
 
         self.kind_to_shape = {
             "crate": self.create_box,
+            "floor": self.create_box,
             "red_box": self.create_box,
             "enemy": self.create_capsule,
             "fallingCrate": self.create_box,
@@ -50,22 +51,18 @@ class GameWorld:
         radius = size[0]
         height = size[1]
         shape = BulletCapsuleShape(radius, height, ZUp)
-        # node = BulletCharacterControllerNode(shape, radius, kind)
         node = BulletRigidBodyNode(kind)
         node.setMass(mass)
         node.addShape(shape)
         node.setRestitution(0.0)
-        # node.setKinematic(True)
 
         node.setTransform(TransformState.makePos(VBase3(position[0], position[1], position[2])))
 
-        # self.physics_world.attachCharacter(node)
         self.physics_world.attachRigidBody(node)
 
         return node
 
     def create_box(self, position, size, kind, mass):
-        # The box shape needs half the size in each dimension
         shape = BulletBoxShape(Vec3(size[0] / 2, size[1] / 2, size[2] / 2))
         node = BulletRigidBodyNode(kind)
         node.setMass(mass)
@@ -82,6 +79,17 @@ class GameWorld:
             return self.kind_to_shape[kind](position, size, kind, mass)
 
         return None
+
+    def update_physics_shape(self, obj, new_size):
+        self.physics_world.removeRigidBody(obj.physics)
+        shape = BulletBoxShape(Vec3(new_size[0] / 2, new_size[1] / 2, new_size[2] / 2))
+        body = BulletRigidBodyNode(f"updated-{obj.id}")
+        body.setMass(0)
+        body.addShape(shape)
+        body.setTransform(TransformState.makePos(obj.physics.getTransform().getPos()))
+        body.setPythonTag("owner", obj)
+        obj.physics = body
+        self.physics_world.attachRigidBody(body)
 
     def create_object(self, position, kind, size, mass, subclass):
         physics = self.create_physics_object(position, kind, size, mass)
@@ -133,7 +141,6 @@ class GameWorld:
 
                 for contact in contacts:
                     if contact.getNode1() and contact.getNode1().getPythonTag("owner"):
-                        # Notify both objects about the collision
                         contact.getNode1().getPythonTag("owner").collision(self.game_objects[id])
                         self.game_objects[id].collision(contact.getNode1().getPythonTag("owner"))
 
@@ -157,18 +164,62 @@ class GameWorld:
 
         self.check_stack()
 
+    def find_box_below(self, current_obj):
+        current_pos = current_obj.physics.getTransform().getPos()
+        closest = None
+        closest_z = -float('inf')
+        for obj in self.game_objects.values():
+            if obj is current_obj or obj.kind != "fallingCrate":
+                continue
+            pos = obj.physics.getTransform().getPos()
+            if abs(pos.getX() - current_pos.getX()) < 1.0 and abs(pos.getZ() - current_pos.getZ()) < 2.0:
+                if pos.getZ() < current_pos.getZ() and pos.getZ() > closest_z:
+                    closest_z = pos.getZ()
+                    closest = obj
+        return closest
+
     def check_stack(self):
         for obj_id, obj in self.game_objects.items():
             if obj.kind == "fallingCrate" and not obj.physics.isKinematic():
                 pos = obj.physics.getTransform().getPos()
+
+                # Check for falling out of bounds
                 if pos.getZ() < -4 or abs(pos.getX()) > 6:
                     self.game_over = True
                     self.update_score_text()
                     print(f"Game Over! Final Score: {self.score}")
                     return
+
+                # Scoring check
                 if obj.physics.getLinearVelocity().length() < 0.1 and not obj.has_scored:
                     self.score += 1
                     obj.has_scored = True
+
+                    below = self.find_box_below(obj)
+                    if below:
+                        below_pos = below.physics.getTransform().getPos()
+                        x_diff = abs(below_pos.getX() - pos.getX())
+
+                        if x_diff < 2:
+                            self.score += 2
+                            print("Perfect drop! +2 bonus")
+
+                            # Increase the size of the box below
+                            current_size = below.size
+                            size_increase = 0.5  # Increase each dimension by 0.5
+                            new_size = (
+                                current_size[0] + size_increase,
+                                current_size[1] + size_increase,
+                                current_size[2]
+                            )
+                            below.size = new_size  # Update the game object's size
+
+                            # Update the physics shape to match the new size
+                            self.update_physics_shape(below, new_size)
+
+                            # Notify the view to update the visual scale
+                            pub.sendMessage("perfect_drop", obj_id=below.id, new_size=new_size)
+
                     self.update_score_text()
                     print(f"Score: {self.score}")
 
@@ -176,13 +227,11 @@ class GameWorld:
         self.score_text.setText(f"Score: {self.score}")
 
     def load_world(self):
-        self.create_object([3, 0, 0], "crate", (5, 2, 1), 10, GameObject)
-        self.create_object([-3, 0, -4], "teleporter", (1, 1, 1), 0, Teleporter)
         player = self.create_object([0, -20, 0], "player", (1, 0.5, 0.25, 0.5), 10, Player)
         player.is_collision_source = True
-        self.create_object([0, 0, -3], "crate", (2, 4, 1), 10, GameObject)
-        self.create_object([0, -20, 10], "player", (1, 0.5, 0.25, 0.5), 10, Player)
-        self.create_object([0, 0, -5], "crate", (1000, 1000, 0.5), 0, GameObject)
+        self.create_object([0, 0, -3], "crate", (5, 10, 1), 10, GameObject)
+        self.create_object([0, -40, 10], "player", (1, 0.5, 0.25, 100), 10, Player)
+        self.create_object([0, 0, -5], "floor", (1000, 1000, 0.5), 0, GameObject)
 
     def get_property(self, key):
         if key in self.properties:
@@ -196,13 +245,11 @@ class GameWorld:
         pub.sendMessage('property', key=key, value=value)
 
     def get_nearest(self, from_pt, to_pt):
-        # This shows the technique of near object detection using the physics engine.
         fx, fy, fz = from_pt
         tx, ty, tz = to_pt
         result = self.physics_world.rayTestClosest(Point3(fx, fy, fz), Point3(tx, ty, tz))
         return result
 
-    # TODO: use this to demonstrate a teleporting trap
     def get_all_contacts(self, game_object):
         if game_object.physics:
             return self.physics_world.contactTest(game_object.physics).getContacts()
